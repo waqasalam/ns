@@ -39,7 +39,7 @@ func main() {
 
 	done := make(chan struct{})
 	msgc := make(chan *Message)
-	go handler(msgc, done)
+	go send_handler(msgc, done)
 
 	nsfunc := func(path string) {
 		runtime.LockOSThread()
