@@ -80,6 +80,7 @@ func main() {
 				msgc <- msg
 			}
 			fmt.Println("Done", path)
+			l.Close()
 		}
 		go accept_func()
 	}
@@ -90,6 +91,15 @@ func main() {
 	for i := 0; i < 4; i++ {
 		<-done
 	}
+
+	go nsfunc("coke")
+	go nsfunc("waqas")
+
+	// Again open the namsepace
+	for i := 0; i < 4; i++ {
+		<-done
+	}
+
 	close(msgc)
 
 	//	ns, err := GetFromThread()
