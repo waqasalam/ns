@@ -21,7 +21,8 @@ type Message struct {
 	name string
 }
 
-func handler(c chan *Message, done chan struct{}) {
+// This is doing send message for all the vrfs
+func send_handler(c chan *Message, done chan struct{}) {
 
 	for msg := range c {
 		msg := msg
@@ -33,10 +34,7 @@ func handler(c chan *Message, done chan struct{}) {
 }
 
 func main() {
-	//origns, err := GetFromThread()
-	//if err != nil {
-	//	t.Fatal(err)
-	//}
+
 	fmt.Println("Main program started", unix.Gettid)
 
 	done := make(chan struct{})
@@ -82,6 +80,7 @@ func main() {
 			fmt.Println("Done", path)
 			l.Close()
 		}
+		// Do accept in a separate go routine
 		go accept_func()
 	}
 
@@ -91,11 +90,11 @@ func main() {
 	for i := 0; i < 4; i++ {
 		<-done
 	}
+	//Start listening on the namespace again check if it works.
 
 	go nsfunc("coke")
 	go nsfunc("waqas")
 
-	// Again open the namsepace
 	for i := 0; i < 4; i++ {
 		<-done
 	}
