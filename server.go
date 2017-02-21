@@ -29,33 +29,48 @@ func send_handler(sendc chan *Message, done chan struct{}) {
 
 	for msg := range sendc {
 		msg := msg
-		fmt.Printf("message rcvd %s on", msg.name)
+		fmt.Printf("message rcvd %s on\n", msg.name)
 		msg.conn.Write([]byte("Message received." + msg.name))
 		msg.conn.Close()
 		done <- struct{}{}
 	}
 }
 
-func connect(path string) {
+func connect(path string, cdone chan struct{}) {
 	runtime.LockOSThread()
 	fmt.Println("Do connect", path)
 
-	socket, err := netUtils.ConnectSocket("tcp", "0.0.0.0:3333", "0.0.0.0:179")
+	runtime.LockOSThread()
+	fmt.Println("start for path", path)
+	if path != "" {
+		newns, err := netns.GetFromPath(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+		if err := netns.SetNs(newns); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	socket, err := netUtils.ConnectSocket("tcp", "0.0.0.0:4444", "0.0.0.0:179")
+	if err != nil {
+		log.Fatal("Socket connect failed", err.Error())
+	}
 	defer netUtils.CloseSocket(socket)
+
+	err = netUtils.Connect(socket, "tcp", "0.0.0.0:4444", "0.0.0.0:200", time.Duration(5)*time.Second)
+	//err = netUtils.Connect(socket, "tcp", "", "0.0.0.0:179", time.Duration(5)*time.Second)
 	if err != nil {
-		log.Fatal("Socket connect failed")
+		log.Fatal("Connect failed", err.Error())
 	}
 
-	err = netUtils.Connect(socket, "tcp", "0.0.0.0:3333", "0.0.0.0:179", time.Duration(5)*time.Second)
+	conn, err := netUtils.ConvertFdToConn(socket)
 	if err != nil {
-		log.Fatal("Socket connect failed")
+		log.Fatal("convert from fd failed")
 	}
-
-	//	conn, err := netUtils.ConvertFdToConn(socket)
-	//	if err != nil {
-	//		fmt.Println("conn didn't go thru")
-	//	}
-
+	conn.Write([]byte("message Sent send socket"))
+	<-cdone
+	fmt.Println("connect is done")
 }
 
 func main() {
@@ -64,11 +79,12 @@ func main() {
 
 	done := make(chan struct{})
 	sendc := make(chan *Message)
+	cdone := make(chan struct{})
 	go send_handler(sendc, done)
 
 	nsfunc := func(path string) {
 		runtime.LockOSThread()
-		fmt.Println(path)
+		fmt.Println("start for path", path)
 		if path != "" {
 			newns, err := netns.GetFromPath(path)
 			if err != nil {
@@ -80,12 +96,13 @@ func main() {
 		}
 		l, err := net.Listen("tcp4", "0.0.0.0:3333")
 		if err != nil {
-			fmt.Println("Error listening:", err.Error(), path)
+			fmt.Println("Error listening:", err.Error())
+			fmt.Println("Current path:", path)
 			os.Exit(1)
 		}
 
 		accept_func := func() {
-			fmt.Println("Listening on "+":"+CONN_PORT, unix.Gettid)
+			fmt.Println("Listening on "+":"+CONN_PORT, unix.Gettid, path)
 			for i := 0; i < 2; i++ {
 				// Listen for an incoming connection.
 				conn, err := l.Accept()
@@ -108,18 +125,19 @@ func main() {
 		// Do accept in a separate go routine
 		go accept_func()
 	}
-
+	go connect("coke", cdone)
 	go nsfunc("coke")
 	go nsfunc("waqas")
 	go nsfunc("")
 	for i := 0; i < 6; i++ {
 		<-done
 	}
-	//Start listening on the namespace again check if it works.
+	cdone <- struct{}{}
 
+	go nsfunc("")
 	go nsfunc("coke")
 	go nsfunc("waqas")
-	go nsfunc("")
+
 	for i := 0; i < 4; i++ {
 		<-done
 	}
