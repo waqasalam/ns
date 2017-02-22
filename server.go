@@ -50,6 +50,9 @@ func connect(path string, cdone chan struct{}) {
 		if err := netns.SetNs(newns); err != nil {
 			log.Fatal(err)
 		}
+		if err := netns.CloseNs(newns); err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	socket, err := netUtils.ConnectSocket("tcp", "0.0.0.0:4444", "0.0.0.0:179")
