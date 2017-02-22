@@ -96,6 +96,10 @@ func main() {
 			if err := netns.SetNs(newns); err != nil {
 				log.Fatal(err)
 			}
+
+			if err := netns.CloseNs(newns); err != nil {
+				log.Fatal(err)
+			}
 		}
 		l, err := net.Listen("tcp4", "0.0.0.0:3333")
 		if err != nil {
