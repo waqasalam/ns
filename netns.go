@@ -9,7 +9,7 @@ import (
 type NsHandle int
 
 // close closes the file descriptor mapped to a network namespace
-func (h NsHandle) Close() error {
+func CloseNs(h NsHandle) error {
 	return unix.Close(int(h))
 }
 

@@ -2,6 +2,7 @@ package netns
 
 import (
 	"fmt"
+	"golang.org/x/sys/unix"
 	"net"
 	"os"
 	"runtime"
@@ -30,7 +31,7 @@ func TestNs(t *testing.T) {
 		if err := SetNs(newns); err != nil {
 			t.Fatal(err)
 		}
-
+		fmt.Println(unix.Gettid)
 		l, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
 		if err != nil {
 			fmt.Println("Error listening:", err.Error())
